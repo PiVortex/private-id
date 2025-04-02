@@ -17,3 +17,8 @@ pgo-data.profdata
 
 # Env
 .env
+
+Cargo.lock
+lib/Cargo.lock
+program/Cargo.lock
+script/Cargo.lock
