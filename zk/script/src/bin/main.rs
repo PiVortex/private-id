@@ -1,18 +1,4 @@
-//! An end-to-end example of using the SP1 SDK to generate a proof of a program that can be executed
-//! or have a core proof generated.
-//!
-//! You can run this script using the following command:
-//! ```shell
-//! RUST_LOG=info cargo run --release -- --execute
-//! ```
-//! or
-//! ```shell
-//! RUST_LOG=info cargo run --release -- --prove
-//! ```
-
-use alloy_sol_types::SolType;
 use clap::Parser;
-use fibonacci_lib::PublicValuesStruct;
 use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -27,15 +13,13 @@ struct Args {
 
     #[clap(long)]
     prove: bool,
-
-    #[clap(long, default_value = "20")]
-    n: u32,
 }
 
 fn main() {
     // Setup the logger.
     sp1_sdk::utils::setup_logger();
     dotenv::dotenv().ok();
+    let mrz = std::env::var("PASSPORT_MRZ").expect("PASSPORT_MRZ environment variable not set");
 
     // Parse the command line arguments.
     let args = Args::parse();
@@ -50,29 +34,23 @@ fn main() {
 
     // Setup the inputs.
     let mut stdin = SP1Stdin::new();
-    stdin.write(&args.n);
+    stdin.write(&mrz);
 
-    println!("n: {}", args.n);
+    println!("mrz: {}", mrz);
 
     if args.execute {
         // Execute the program
         let (output, report) = client.execute(PASSPORT_ELF, &stdin).run().unwrap();
         println!("Program executed successfully.");
 
-        // Read the output.
-        let decoded = PublicValuesStruct::abi_decode(output.as_slice(), true).unwrap();
-        let PublicValuesStruct { n, a, b } = decoded;
-        println!("n: {}", n);
-        println!("a: {}", a);
-        println!("b: {}", b);
+        println!("output: {:?}", output);
+        println!("\n\n");
+        println!("report: {:?}", report);
+        // println!("is_valid: {}", output[0]);
+        // println!("name: {}", output[1]);
 
-        let (expected_a, expected_b) = fibonacci_lib::fibonacci(n);
-        assert_eq!(a, expected_a);
-        assert_eq!(b, expected_b);
-        println!("Values are correct!");
-
-        // Record the number of cycles executed.
-        println!("Number of cycles: {}", report.total_instruction_count());
+        // assert_eq!(is_valid, true, "The passport is invalid!");
+        // println!("The passport is valid!");
     } else {
         // Setup the program for proving.
         let (pk, vk) = client.setup(PASSPORT_ELF);
