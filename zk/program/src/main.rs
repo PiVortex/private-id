@@ -1,18 +1,23 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use passport_lib::validate_passport;
+use alloy_sol_types::SolType;
+use passport_lib::{validate_passport, PublicValuesStruct};
 
 pub fn main() {
     // Read the input
     let mrz = sp1_zkvm::io::read::<String>();
-    // Write the mrz to the public input
-    sp1_zkvm::io::commit(&mrz);
 
     // Run the function
-    let (is_valid, name) = validate_passport(mrz);
+    let (is_valid, name) = validate_passport(mrz.clone());
 
-    // Write the result to the public output
-    sp1_zkvm::io::commit(&is_valid);
-    sp1_zkvm::io::commit(&name);
+    // Convert public values to bytes
+    let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct {
+        mrz,
+        is_valid,
+        name,
+    });
+
+    // Write the bytes as output
+    sp1_zkvm::io::commit_slice(&bytes);
 }

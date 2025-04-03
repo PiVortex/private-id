@@ -1,4 +1,6 @@
+use alloy_sol_types::SolType;
 use clap::Parser;
+use passport_lib::PublicValuesStruct;
 use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
 
 /// The ELF (executable and linkable format) file for the Succinct RISC-V zkVM.
@@ -43,14 +45,19 @@ fn main() {
         let (output, report) = client.execute(PASSPORT_ELF, &stdin).run().unwrap();
         println!("Program executed successfully.");
 
-        println!("output: {:?}", output);
-        println!("\n\n");
-        println!("report: {:?}", report);
-        // println!("is_valid: {}", output[0]);
-        // println!("name: {}", output[1]);
+        // Read the output.
+        let decoded = PublicValuesStruct::abi_decode(output.as_slice(), true).unwrap();
+        let PublicValuesStruct {
+            mrz,
+            is_valid,
+            name,
+        } = decoded;
+        println!("mrz: {}", mrz);
+        println!("is_valid: {}", is_valid);
+        println!("name: {}", name);
 
-        // assert_eq!(is_valid, true, "The passport is invalid!");
-        // println!("The passport is valid!");
+        assert!(is_valid, "The passport is invalid!");
+        println!("The passport is valid!");
     } else {
         // Setup the program for proving.
         let (pk, vk) = client.setup(PASSPORT_ELF);
